@@ -20,7 +20,6 @@ class Table:
                 return entry[name]
             except KeyError:
                 pass
-
         raise KeyError("name %s cannot be found in the table" % name)
 
     def copy(self):
@@ -32,12 +31,10 @@ class Table:
         bindings = []
         for entry in self.entries:
             bindings.extend(sorted(entry.items(), key=lambda x: x[0]))
-
         return bindings
 
 # Read function for sexps
 Symbol = str
-
 class SExp:
     @classmethod
     def read(cls, s):
