@@ -1,15 +1,11 @@
 import re
+import copy
 
 # Environment
-class Entry:
+class Entry(dict):
     def __init__(self, names, values):
-        self.mapping = dict(zip(names, values))
-
-    def lookup(self, name):
-        """
-        Raises KeyError on missing name
-        """
-        return self.mapping[name]
+        for name, value in zip(names, values):
+            self[name] = value
 
 class Table:
     def __init__(self):
@@ -22,7 +18,7 @@ class Table:
         value = None
         for entry in self.entries:
             try:
-                value = entry.lookup(name)
+                value = entry[name]
                 break
             except KeyError:
                 pass
@@ -34,9 +30,15 @@ class Table:
 
     def copy(self):
         t = Table()
-        t.entries = self.entries[:]
+        t.entries = copy.deepcopy(self.entries)
         return t
-            
+
+    def get_all_bindings(self):
+        bindings = []
+        for entry in self.entries:
+            bindings.extend(sorted(entry.items(), key=lambda x: x[0]))
+
+        return bindings
 
 # Read function for sexps
 Symbol = str
@@ -151,10 +153,11 @@ class Interpreter:
         f = Function(type=Function.CLOSURE)
         f.parameters = sexp[1]
         f.body = sexp[2]
+        f.closure_env = env.copy()
         return f
 
     def _cond(self, sexp, env):
-        cond_clauses = sexp[1:]
+        cond_clauses = sexp[1]
         for predicate, conseq in cond_clauses:
             if self._eval(predicate, env):
                 return self._eval(conseq, env)

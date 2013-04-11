@@ -1,6 +1,6 @@
 import unittest
 
-from scheme_on import SExp, Interpreter
+from scheme_on import SExp, Interpreter, Function
 
 
 class ReadTestCase(unittest.TestCase):
@@ -88,7 +88,6 @@ class EvalTestCase(unittest.TestCase):
         self.assertFalse(self.interpreter.eval("(number? (quote abc))"))
         self.assertFalse(self.interpreter.eval("(number? (quote (abc)))"))
 
-
     def test_atom(self):
         self.assertTrue(self.interpreter.eval("(atom? (quote a))"))
         self.assertTrue(self.interpreter.eval("(atom? 1)"))
@@ -108,8 +107,22 @@ class EvalTestCase(unittest.TestCase):
         self.assertTrue(self.interpreter.eval("(eq? (quote (a b c)) (quote (a b c)))"))
         self.assertFalse(self.interpreter.eval("(eq? (quote (a b c)) (quote (a b d)))"))
 
+    def test_apply(self):
+        self.assertEqual(self.interpreter.eval("((lambda (x) (add1 x)) 1)"), 2)
 
+    def test_lambda(self):
+        scheme_func = self.interpreter.eval("((lambda (x) (lambda (y) (add1 x))) 1)")
+        self.assertEqual(scheme_func.type, Function.CLOSURE)
+        self.assertEqual(scheme_func.parameters, ['y'])
+        self.assertEqual(scheme_func.name, None)
+        self.assertEqual(scheme_func.body, ['add1', 'x'])
+        self.assertEqual(scheme_func.closure_env.get_all_bindings(), [('x', 1)])
 
+    def test_cond(self):
+        self.assertEqual(self.interpreter.eval("(cond ((#t 1)))"), 1)
+        self.assertEqual(self.interpreter.eval("(cond ((#f 1) (#t 2)))"), 2)
+        self.assertEqual(self.interpreter.eval("(cond (((eq? 2 1) (quote no)) (#t (quote yes))))"), "yes")
+        self.assertRaises(StopIteration, self.interpreter.eval, "(cond (((eq? 2 1) (quote no)) (#f (quote yes))))")
 
 
 
