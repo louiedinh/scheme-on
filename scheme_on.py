@@ -112,7 +112,7 @@ class Interpreter:
 
     # Atom actions
     def atom_to_action(self, sexp):
-        CONSTS = ["#t", "#f", "cons", "car", "cdr", "atom?", "zero?", "empty?", "number?", "add1", "sub1"]
+        CONSTS = ["#t", "#f", "cons", "car", "cdr", "atom?", "zero?", "empty?", "number?", "add1", "sub1", "eq?"]
         if type(sexp) == int:
             return self._const
         elif sexp in CONSTS:
@@ -180,7 +180,7 @@ class Interpreter:
 
     def _apply_primitive(self, func_name, arg_values):
         if func_name == "cons":
-            return arg_values[1].append(arg_values[0])
+            return [arg_values[0]] + arg_values[1]
         elif func_name == "car":
             return arg_values[0][0]
         elif func_name == "cdr":
@@ -197,6 +197,8 @@ class Interpreter:
             return type(arg_values[0]) is not list
         elif func_name == "empty?":
             return isinstance(arg_values[0], list) and len(arg_values[0]) == 0
+        elif func_name == "eq?":
+            return arg_values[0] == arg_values[1]
         else:
             raise ValueError("%s - No such function func_name" % func_name)
 
