@@ -15,18 +15,13 @@ class Table:
         self.entries.append(entry)
 
     def lookup(self, name):
-        value = None
         for entry in self.entries:
             try:
-                value = entry[name]
-                break
+                return entry[name]
             except KeyError:
                 pass
 
-        if value:
-            return value
-        else:
-            raise KeyError("name %s cannot be found in the table" % name)
+        raise KeyError("name %s cannot be found in the table" % name)
 
     def copy(self):
         t = Table()
