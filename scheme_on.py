@@ -22,7 +22,7 @@ class Entry(dict):
         for name, value in zip(names, values):
             self[name] = value
 
-    def extend(self, name, value):
+    def insert(self, name, value):
         self[name] = value
 
 
@@ -118,6 +118,7 @@ class SExp:
         else:
             return str(sexp)
 
+
 ### FUNCTIONS ###
 
 class Function:
@@ -133,6 +134,7 @@ class Function:
 
     def __repr__(self):
         return "Function: {}".format(self.name if self.name is not None else "USER_DEFINED")
+
 
 ### Interpreter ###
 
@@ -212,10 +214,10 @@ class Interpreter:
     def _define(self, sexp, env):
         name = sexp[1]
         value = self._eval(sexp[2], env)
-        self.global_entry.extend(name, value)
+        self.global_entry.insert(name, value)
         if isinstance(value, Function):
-            value.closure_env.entries[0].extend(name, value)
-            print("XX" + repr(value.closure_env))
+            # Mutate the closure environment to hold a reference to itself to support recursion
+            value.closure_env = value.closure_env.extend(Entry([name], [value]))
         return value
 
     def _application(self, sexp, env):
