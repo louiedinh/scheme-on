@@ -1,5 +1,19 @@
 import re
 import copy
+import inspect
+from functools import wraps
+
+def trace(func):
+    @wraps(func)
+    def wrapped_func(*args, **kwargs):
+        if inspect.getargspec(func).args[0] == 'self':
+            print("Calling {} with args {}".format(func.__name__, args[1:]))
+        else:
+            print("Calling {} with args {}".format(func.__name__, args))
+        return func(*args, **kwargs)
+    
+    return wrapped_func
+
 
 ### ENVIRONMENT ###
 
@@ -20,7 +34,7 @@ class Environment:
             self.entries = entries
 
     def extend(self, entry):
-        self.entries.insert(0, entry)
+        return Environment(entries=[entry] + self.entries[:])
 
     def lookup(self, name):
         """
@@ -33,9 +47,6 @@ class Environment:
         else:
             return containing_entries[0][name]
 
-    def copy(self):
-        return Environment(copy.deepcopy(self.entries))
-
     def all_bindings(self):
         """
         Returns all the bindings.
@@ -46,8 +57,8 @@ class Environment:
             bindings.extend(sorted(entry.items(), key=lambda x: x[0]))
         return bindings
 
-    def __str__(self):
-        return str(self.all_bindings())
+    def __repr__(self):
+        return "<Environment>: {}".format(str(self.all_bindings()))
 
 
 
@@ -120,6 +131,9 @@ class Function:
         self.closure_env = None
         self.parameters = []
 
+    def __repr__(self):
+        return "Function: {}".format(self.name if self.name is not None else "USER_DEFINED")
+
 ### Interpreter ###
 
 class Interpreter:
@@ -185,7 +199,7 @@ class Interpreter:
         f = Function(type=Function.CLOSURE)
         f.parameters = sexp[1]
         f.body = sexp[2]
-        f.closure_env = env.copy()
+        f.closure_env = env
         return f
 
     def _cond(self, sexp, env):
@@ -199,6 +213,9 @@ class Interpreter:
         name = sexp[1]
         value = self._eval(sexp[2], env)
         self.global_entry.extend(name, value)
+        if isinstance(value, Function):
+            value.closure_env.entries[0].extend(name, value)
+            print("XX" + repr(value.closure_env))
         return value
 
     def _application(self, sexp, env):
@@ -206,12 +223,12 @@ class Interpreter:
         arg_vals = [self._eval(arg_sexp, env) for arg_sexp in sexp[1:]]
         return self._apply(func, arg_vals, env)
 
+    @trace
     def _apply(self, func, arg_vals, env):
         if func.type == Function.CLOSURE:
             closure_env = func.closure_env
             new_entry = Entry(func.parameters, arg_vals)
-            new_env = env.copy()
-            new_env.extend(new_entry)
+            new_env = closure_env.extend(new_entry)
             return self._eval(func.body, new_env)
         elif func.type== Function.PRIMITIVE:
             return self._apply_primitive(func.name, arg_vals)
