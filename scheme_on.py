@@ -1,5 +1,4 @@
 import re
-import copy
 import inspect
 from functools import wraps
 
@@ -225,7 +224,6 @@ class Interpreter:
         arg_vals = [self._eval(arg_sexp, env) for arg_sexp in sexp[1:]]
         return self._apply(func, arg_vals, env)
 
-    @trace
     def _apply(self, func, arg_vals, env):
         if func.type == Function.CLOSURE:
             closure_env = func.closure_env

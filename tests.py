@@ -124,7 +124,15 @@ class EvalTestCase(unittest.TestCase):
         self.assertEqual(self.interpreter.eval("(cond ((eq? 2 1) (quote no)) (#t (quote yes)))"), "yes")
         self.assertRaises(StopIteration, self.interpreter.eval, "(cond ((eq? 2 1) (quote no)) (#f (quote yes)))")
 
+    def test_define(self):
+        self.interpreter.eval("(define + (lambda (x y) (cond ((zero? x) y) (#t (+ (sub1 x) (add1 y))))))")
+        self.assertEqual(9, self.interpreter.eval("(+ 2 7)"))
 
+    def test_currying(self):
+        self.interpreter.eval("(define + (lambda (x y) (cond ((zero? x) y) (#t (+ (sub1 x) (add1 y))))))")
+        self.interpreter.eval("(define create_adder (lambda (x y) (lambda (y) (+ x y))))")
+        val = self.interpreter.eval("((create_adder 5 (quote ignored)) 2)")
+        self.assertEqual(val, 7)
 
 if __name__ == '__main__':
     unittest.main()
