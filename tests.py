@@ -116,7 +116,7 @@ class EvalTestCase(unittest.TestCase):
         self.assertEqual(scheme_func.parameters, ['y'])
         self.assertEqual(scheme_func.name, None)
         self.assertEqual(scheme_func.body, ['add1', 'x'])
-        self.assertEqual(scheme_func.closure_env.get_all_bindings(), [('x', 1)])
+        self.assertEqual(scheme_func.closure_env.all_bindings(), [('x', 1)])
 
     def test_cond(self):
         self.assertEqual(self.interpreter.eval("(cond ((#t 1)))"), 1)

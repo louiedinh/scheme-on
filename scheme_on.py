@@ -1,48 +1,72 @@
 import re
 import copy
 
-# Environment
+### ENVIRONMENT ###
+
 class Entry(dict):
     def __init__(self, names, values):
         for name, value in zip(names, values):
             self[name] = value
 
+
 class Table:
-    def __init__(self):
-        self.entries = []
+    def __init__(self, entries=None):
+        if entries is None:
+            self.entries = []
+        else:
+            self.entries = entries
 
     def extend(self, entry):
         self.entries.append(entry)
 
     def lookup(self, name):
-        for entry in self.entries:
-            try:
-                return entry[name]
-            except KeyError:
-                pass
-        raise KeyError("name %s cannot be found in the table" % name)
+        """
+        Look through all entries and return the first binding for <name>.
+        If not found, raise a KeyError
+        """
+        containing_entries = [entry for entry in self.entries if name in entry]
+        if not containing_entries:
+            raise KeyError("name %s cannot be found in the table" % name)
+        else:
+            return containing_entries[0][name]
 
     def copy(self):
-        t = Table()
-        t.entries = copy.deepcopy(self.entries)
-        return t
+        return Table(copy.deepcopy(self.entries))
 
-    def get_all_bindings(self):
+    def all_bindings(self):
+        """
+        Returns all the bindings.
+        Sorted in order of binding scope and then lexical ordering.
+        """
         bindings = []
         for entry in self.entries:
             bindings.extend(sorted(entry.items(), key=lambda x: x[0]))
         return bindings
 
-# Read function for sexps
+
+
+### SEXPS ###
+
 Symbol = str
+
 class SExp:
     @classmethod
     def read(cls, s):
+        """
+        Parses a lisp sexp into our internal representation
+        """
         tokens = s.replace("(", " ( ").replace(")", " ) ").split()
         return cls.read_from(tokens)
 
     @classmethod
     def read_from(cls, token_list):
+        """
+        Given a list of tokens, return our representation of an sexp.
+        Our representation mirrors lisp sexps with the following structures:
+            - Lists are python lists
+            - ints are python int objects
+            - Strings are python str objects
+        """
         if len(token_list) == 0:
             raise ValueError("Error - Unexpected EOF")
         token = token_list.pop(0)
@@ -55,10 +79,13 @@ class SExp:
         elif token == ')':
             raise SyntaxError("Unexpected )")
         else:
-            return cls.atom(token)
+            return cls.to_atom(token)
 
     @classmethod
-    def atom(cls, token):
+    def to_atom(cls, token):
+        """
+        Tries to convert a token into an atom
+        """
         try:
             return int(token)
         except ValueError:
@@ -66,16 +93,16 @@ class SExp:
 
     @classmethod
     def to_lstr(cls, sexp):
+        """
+        Convert our representation of sexps back into a lisp sexp.
+        """
         if type(sexp) is list:
-            ret = "("
-            ret += " ".join([cls.to_lstr(s) for s in sexp])
-            ret += ")"
+            return  "(" + " ".join([cls.to_lstr(s) for s in sexp]) + ")"
         else:
-            ret = str(sexp)
-            
-        return ret
+            return str(sexp)
 
-# Functions and Closures
+### FUNCTIONS ###
+
 class Function:
     PRIMITIVE = 1
     CLOSURE = 2
@@ -86,6 +113,8 @@ class Function:
         self.body = None
         self.closure_env = None
         self.parameters = []
+
+### Interpreter ###
 
 class Interpreter:
     def eval(self, sexp):
