@@ -4,12 +4,15 @@ import copy
 ### ENVIRONMENT ###
 
 class Entry(dict):
-    def __init__(self, names, values):
+    def __init__(self, names=[], values=[]):
         for name, value in zip(names, values):
             self[name] = value
 
+    def extend(self, name, value):
+        self[name] = value
 
-class Table:
+
+class Environment:
     def __init__(self, entries=None):
         if entries is None:
             self.entries = []
@@ -17,7 +20,7 @@ class Table:
             self.entries = entries
 
     def extend(self, entry):
-        self.entries.append(entry)
+        self.entries.insert(0, entry)
 
     def lookup(self, name):
         """
@@ -31,7 +34,7 @@ class Table:
             return containing_entries[0][name]
 
     def copy(self):
-        return Table(copy.deepcopy(self.entries))
+        return Environment(copy.deepcopy(self.entries))
 
     def all_bindings(self):
         """
@@ -42,6 +45,9 @@ class Table:
         for entry in self.entries:
             bindings.extend(sorted(entry.items(), key=lambda x: x[0]))
         return bindings
+
+    def __str__(self):
+        return str(self.all_bindings())
 
 
 
@@ -117,8 +123,11 @@ class Function:
 ### Interpreter ###
 
 class Interpreter:
+    def __init__(self):
+        self.global_entry = Entry()
+
     def eval(self, sexp):
-        return self._eval(SExp.read(sexp), environment=Table())
+        return self._eval(SExp.read(sexp), environment=Environment(entries=[self.global_entry]))
 
     def _eval(self, sexp, environment):
         action = self.expression_to_action(sexp)
@@ -135,7 +144,7 @@ class Interpreter:
 
     # Atom actions
     def atom_to_action(self, sexp):
-        CONSTS = ["#t", "#f", "cons", "car", "cdr", "atom?", "zero?", "empty?", "number?", "add1", "sub1", "eq?"]
+        CONSTS = ["#t", "#f", "cons", "car", "cdr", "atom?", "zero?", "empty?", "number?", "add1", "sub1", "eq?", "define"]
         if type(sexp) == int:
             return self._const
         elif sexp in CONSTS:
@@ -164,6 +173,8 @@ class Interpreter:
             return self._quote
         elif func == "cond":
             return self._cond
+        elif func == "define":
+            return self._define
         else:
             return self._application
 
@@ -178,11 +189,17 @@ class Interpreter:
         return f
 
     def _cond(self, sexp, env):
-        cond_clauses = sexp[1]
+        cond_clauses = sexp[1:]
         for predicate, conseq in cond_clauses:
             if self._eval(predicate, env):
                 return self._eval(conseq, env)
         raise StopIteration("End of cond")
+
+    def _define(self, sexp, env):
+        name = sexp[1]
+        value = self._eval(sexp[2], env)
+        self.global_entry.extend(name, value)
+        return value
 
     def _application(self, sexp, env):
         func = self._eval(sexp[0], env)
@@ -192,7 +209,6 @@ class Interpreter:
     def _apply(self, func, arg_vals, env):
         if func.type == Function.CLOSURE:
             closure_env = func.closure_env
-            body = func.body
             new_entry = Entry(func.parameters, arg_vals)
             new_env = env.copy()
             new_env.extend(new_entry)
@@ -229,5 +245,5 @@ class Interpreter:
 if __name__ == '__main__':
     interpreter = Interpreter()
     while True:
-        value = interpreter.eval(raw_input(">"))
+        value = interpreter.eval(input("> "))
         print(SExp.to_lstr(value))

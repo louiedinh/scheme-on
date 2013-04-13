@@ -119,10 +119,10 @@ class EvalTestCase(unittest.TestCase):
         self.assertEqual(scheme_func.closure_env.all_bindings(), [('x', 1)])
 
     def test_cond(self):
-        self.assertEqual(self.interpreter.eval("(cond ((#t 1)))"), 1)
-        self.assertEqual(self.interpreter.eval("(cond ((#f 1) (#t 2)))"), 2)
-        self.assertEqual(self.interpreter.eval("(cond (((eq? 2 1) (quote no)) (#t (quote yes))))"), "yes")
-        self.assertRaises(StopIteration, self.interpreter.eval, "(cond (((eq? 2 1) (quote no)) (#f (quote yes))))")
+        self.assertEqual(self.interpreter.eval("(cond (#t 1))"), 1)
+        self.assertEqual(self.interpreter.eval("(cond (#f 1) (#t 2))"), 2)
+        self.assertEqual(self.interpreter.eval("(cond ((eq? 2 1) (quote no)) (#t (quote yes)))"), "yes")
+        self.assertRaises(StopIteration, self.interpreter.eval, "(cond ((eq? 2 1) (quote no)) (#f (quote yes)))")
 
 
 
