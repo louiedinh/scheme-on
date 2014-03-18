@@ -151,13 +151,13 @@ class Interpreter:
     def is_atom(self, sexp):
         return type(sexp) is int or type(sexp) is Symbol
 
+    #  Sexp -> Actions #
     def expression_to_action(self, sexp):
         if self.is_atom(sexp):
             return self.atom_to_action(sexp)
         else:
             return self.list_to_action(sexp)
 
-    # Atom actions
     def atom_to_action(self, sexp):
         CONSTS = ["#t", "#f", "cons", "car", "cdr", "atom?", "zero?", "empty?", "number?", "add1", "sub1", "eq?", "define"]
         if type(sexp) == int:
@@ -166,19 +166,6 @@ class Interpreter:
             return self._const
         else:
             return self._identifier
-
-    def _const(self, sexp, env):
-        if type(sexp) == int:
-            return sexp
-        elif sexp == "#t":
-            return True
-        elif sexp == "#f":
-            return False
-        else:
-            return Function(type=Function.PRIMITIVE, name=sexp)
-
-    def _identifier(self, sexp, env):
-        return env.lookup(sexp)
 
     def list_to_action(self, sexp):
         func = sexp[0]
@@ -192,6 +179,20 @@ class Interpreter:
             return self._define
         else:
             return self._application
+
+    # Actions #
+    def _const(self, sexp, env):
+        if type(sexp) == int:
+            return sexp
+        elif sexp == "#t":
+            return True
+        elif sexp == "#f":
+            return False
+        else:
+            return Function(type=Function.PRIMITIVE, name=sexp)
+
+    def _identifier(self, sexp, env):
+        return env.lookup(sexp)
 
     def _quote(self, sexp, env):
         return sexp[1]
@@ -222,20 +223,21 @@ class Interpreter:
     def _application(self, sexp, env):
         func = self._eval(sexp[0], env)
         arg_vals = [self._eval(arg_sexp, env) for arg_sexp in sexp[1:]]
-        return self._apply(func, arg_vals, env)
+        return self.apply(func, arg_vals, env)
 
-    def _apply(self, func, arg_vals, env):
+    # Apply #
+    def apply(self, func, arg_vals, env):
         if func.type == Function.CLOSURE:
             closure_env = func.closure_env
             new_entry = Entry(func.parameters, arg_vals)
             new_env = closure_env.extend(new_entry)
             return self._eval(func.body, new_env)
         elif func.type== Function.PRIMITIVE:
-            return self._apply_primitive(func.name, arg_vals)
+            return self.apply_primitive(func.name, arg_vals)
         else:
             raise ValueError("%s is not a function" % func)
 
-    def _apply_primitive(self, func_name, arg_values):
+    def apply_primitive(self, func_name, arg_values):
         if func_name == "cons":
             return [arg_values[0]] + arg_values[1]
         elif func_name == "car":
